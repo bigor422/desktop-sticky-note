@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>桌面便签</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="note-container">
+    <div class="titlebar" id="titlebar">
+      <div class="titlebar-left">
+        <span class="app-icon" aria-hidden="true">◆</span>
+        <span class="app-title">桌面便签</span>
+        <span class="app-version">新版</span>
+      </div>
+      <div class="titlebar-right">
+        <button class="btn-ctrl btn-theme" id="btn-theme" title="切换浅色/深色" aria-label="切换浅色/深色">
+          <svg class="icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/>
+            <path d="M12 2v2"/>
+            <path d="M12 20v2"/>
+            <path d="m4.93 4.93 1.41 1.41"/>
+            <path d="m17.66 17.66 1.41 1.41"/>
+            <path d="M2 12h2"/>
+            <path d="M20 12h2"/>
+            <path d="m6.34 17.66-1.41 1.41"/>
+            <path d="m19.07 4.93-1.41 1.41"/>
+          </svg>
+          <svg class="icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.99 13.24A8 8 0 1 1 10.76 3.01 6.5 6.5 0 0 0 20.99 13.24Z"/>
+          </svg>
+        </button>
+        <button class="btn-ctrl btn-opacity" id="btn-opacity" title="调节透明度" aria-label="调节透明度" aria-expanded="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2.7 5.7 9a8.9 8.9 0 1 0 12.6 0L12 2.7Z"/>
+            <path d="M12 6.8V21"/>
+          </svg>
+        </button>
+        <button class="btn-ctrl btn-pin" id="btn-pin" title="保持置顶" aria-label="保持置顶" aria-pressed="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 17v5"/>
+            <path d="M5 17h14"/>
+            <path d="M7 3h10l-2 8 3 4H6l3-4-2-8Z"/>
+          </svg>
+        </button>
+        <button class="btn-ctrl btn-min" id="btn-min" title="最小化" aria-label="最小化">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+        <button class="btn-ctrl btn-close" id="btn-close" title="隐藏到托盘" aria-label="隐藏到托盘">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true">
+            <line x1="6" y1="6" x2="18" y2="18"/>
+            <line x1="18" y1="6" x2="6" y2="18"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="opacity-panel" id="opacity-panel" hidden>
+      <span class="opacity-label">透明度</span>
+      <input id="opacity-range" type="range" min="55" max="100" step="1" value="90" aria-label="透明度">
+      <span class="opacity-value" id="opacity-value">90%</span>
+    </div>
+
+    <div class="clock-section">
+      <div class="clock-time" id="clock-time">00:00:00</div>
+      <div class="clock-date" id="clock-date">2026年5月12日 星期二</div>
+    </div>
+
+    <div class="divider"></div>
+
+    <section class="todo-section" aria-label="待办事项">
+      <form class="todo-form" id="todo-form">
+        <input id="todo-input" type="text" placeholder="添加一条待办事项..." autocomplete="off">
+        <button class="todo-add" type="submit" title="添加" aria-label="添加">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"/>
+            <line x1="5" y1="12" x2="19" y2="12"/>
+          </svg>
+        </button>
+      </form>
+
+      <div class="todo-list-wrap">
+        <ul class="todo-list" id="todo-list"></ul>
+        <p class="empty-state" id="empty-state">暂无待办</p>
+      </div>
+    </section>
+
+    <div class="status-bar">
+      <span class="status-text" id="status-text">已自动保存</span>
+      <span class="task-count" id="task-count">0 待办 · 0 完成</span>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

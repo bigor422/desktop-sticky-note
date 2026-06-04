@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dist-*/
+.electron-cache/
+.electron-builder-cache/
+.user-data/
+user-data/
+*.log
+*.lnk
+run_stdout.txt
+run_stderr.txt
+build_log.txt
