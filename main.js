@@ -13,9 +13,53 @@ let tray = null;
 let isQuitting = false;
 
 const appName = '桌面便签';
-const userDataPath = app.isPackaged
-  ? path.join(path.dirname(app.getPath('exe')), 'user-data')
-  : path.join(__dirname, '.user-data');
+function getPackagedUserDataPath() {
+  const exeDir = path.dirname(app.getPath('exe'));
+
+  if (path.basename(exeDir) === 'win-unpacked') {
+    return path.resolve(exeDir, '..', '..', 'user-data');
+  }
+
+  return path.join(exeDir, 'user-data');
+}
+
+const userDataPath = app.isPackaged ? getPackagedUserDataPath() : path.join(__dirname, '.user-data');
+
+function migrateUserData() {
+  if (!app.isPackaged) {
+    return;
+  }
+
+  const exeDir = path.dirname(app.getPath('exe'));
+  const candidatePaths = [
+    path.join(exeDir, 'user-data'),
+    path.resolve(exeDir, '..', '..', 'dist-theme', 'win-unpacked', 'user-data'),
+    path.resolve(exeDir, '..', '..', 'dist-todo', 'win-unpacked', 'user-data'),
+  ];
+
+  for (const candidatePath of candidatePaths) {
+    const sourceNote = path.join(candidatePath, 'note.txt');
+    const targetNote = path.join(userDataPath, 'note.txt');
+
+    if (candidatePath === userDataPath || !fs.existsSync(sourceNote) || fs.existsSync(targetNote)) {
+      continue;
+    }
+
+    try {
+      fs.mkdirSync(userDataPath, { recursive: true });
+      fs.copyFileSync(sourceNote, targetNote);
+
+      const sourceSettings = path.join(candidatePath, 'settings.json');
+      if (fs.existsSync(sourceSettings)) {
+        fs.copyFileSync(sourceSettings, path.join(userDataPath, 'settings.json'));
+      }
+    } catch (error) {
+      console.error('Failed to migrate user data:', error);
+    }
+  }
+}
+
+migrateUserData();
 
 app.setPath('userData', userDataPath);
 

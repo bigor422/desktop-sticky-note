@@ -333,20 +333,47 @@ body[data-theme='light'] .clock-time {
 }
 
 .todo-item {
+  position: relative;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr) auto;
+  grid-template-columns: 18px 24px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: start;
   width: 100%;
   min-height: 42px;
   padding: 9px 8px;
   border-bottom: 1px solid var(--border-subtle);
+  transition: background 0.16s ease, opacity 0.16s ease;
 }
 
 .todo-item:last-child {
   border-bottom: none;
 }
 
+.todo-item.is-dragging {
+  opacity: 0.46;
+}
+
+.todo-item.is-drop-before::before,
+.todo-item.is-drop-after::after {
+  position: absolute;
+  right: 8px;
+  left: 8px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+  content: '';
+}
+
+.todo-item.is-drop-before::before {
+  top: 0;
+}
+
+.todo-item.is-drop-after::after {
+  bottom: -1px;
+}
+
+.todo-drag,
 .todo-check,
 .todo-action {
   display: flex;
@@ -355,6 +382,25 @@ body[data-theme='light'] .clock-time {
   border: none;
   background: transparent;
   cursor: pointer;
+}
+
+.todo-drag {
+  width: 18px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 6px;
+  color: var(--text-muted);
+  cursor: grab;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+
+.todo-drag:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--accent);
+}
+
+.todo-drag:active {
+  cursor: grabbing;
 }
 
 .todo-check {

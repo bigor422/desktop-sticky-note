@@ -21,6 +21,9 @@ let todos = [];
 let saveTimer = null;
 let prefs = loadPrefs();
 let editingId = null;
+let draggedTodoId = null;
+let dragOverTodoId = null;
+let dragInsertAfter = false;
 
 function pad(value) {
   return value.toString().padStart(2, '0');
@@ -132,10 +135,24 @@ function renderTodos() {
   refreshTodoOrder();
   todoList.innerHTML = '';
 
-  todos.forEach((todo, index) => {
+  todos.forEach((todo) => {
     const item = document.createElement('li');
-    item.className = `todo-item${todo.done ? ' is-done' : ''}${editingId === todo.id ? ' is-editing' : ''}`;
+    item.className = [
+      'todo-item',
+      todo.done ? 'is-done' : '',
+      editingId === todo.id ? 'is-editing' : '',
+      draggedTodoId === todo.id ? 'is-dragging' : '',
+      dragOverTodoId === todo.id ? (dragInsertAfter ? 'is-drop-after' : 'is-drop-before') : '',
+    ].filter(Boolean).join(' ');
     item.dataset.id = todo.id;
+
+    const dragHandle = document.createElement('button');
+    dragHandle.className = 'todo-drag';
+    dragHandle.type = 'button';
+    dragHandle.draggable = editingId !== todo.id;
+    dragHandle.title = '拖动排序';
+    dragHandle.setAttribute('aria-label', '拖动排序');
+    dragHandle.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="5" r="1.6"/><circle cx="15" cy="5" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="19" r="1.6"/><circle cx="15" cy="19" r="1.6"/></svg>';
 
     const checkbox = document.createElement('button');
     checkbox.className = 'todo-check';
@@ -173,22 +190,6 @@ function renderTodos() {
       ? '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>'
       : '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
 
-    const moveUp = document.createElement('button');
-    moveUp.className = 'todo-action todo-move-up';
-    moveUp.type = 'button';
-    moveUp.title = '上移';
-    moveUp.disabled = index === 0;
-    moveUp.setAttribute('aria-label', '上移任务');
-    moveUp.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>';
-
-    const moveDown = document.createElement('button');
-    moveDown.className = 'todo-action todo-move-down';
-    moveDown.type = 'button';
-    moveDown.title = '下移';
-    moveDown.disabled = index === todos.length - 1;
-    moveDown.setAttribute('aria-label', '下移任务');
-    moveDown.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
-
     const remove = document.createElement('button');
     remove.className = 'todo-action todo-remove';
     remove.type = 'button';
@@ -196,8 +197,8 @@ function renderTodos() {
     remove.setAttribute('aria-label', '删除');
     remove.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6 6 18"/></svg>';
 
-    actions.append(edit, moveUp, moveDown, remove);
-    item.append(checkbox, content, actions);
+    actions.append(edit, remove);
+    item.append(dragHandle, checkbox, content, actions);
     todoList.appendChild(item);
   });
 
@@ -298,20 +299,35 @@ function cancelTodoEdit() {
   renderTodos();
 }
 
-function moveTodo(id, direction) {
+function moveTodoTo(id, targetId, insertAfter) {
   sortTodos();
   const currentIndex = todos.findIndex((todo) => todo.id === id);
-  const nextIndex = currentIndex + direction;
+  const targetIndex = todos.findIndex((todo) => todo.id === targetId);
 
-  if (currentIndex < 0 || nextIndex < 0 || nextIndex >= todos.length) {
+  if (currentIndex < 0 || targetIndex < 0 || id === targetId) {
     return;
   }
 
   const [todo] = todos.splice(currentIndex, 1);
+  const adjustedTargetIndex = todos.findIndex((nextTodo) => nextTodo.id === targetId);
+  const nextIndex = adjustedTargetIndex + (insertAfter ? 1 : 0);
   todos.splice(nextIndex, 0, todo);
   refreshTodoOrder();
+  draggedTodoId = null;
+  dragOverTodoId = null;
+  dragInsertAfter = false;
   renderTodos();
   scheduleSave();
+}
+
+function resetDragState(shouldRender = true) {
+  draggedTodoId = null;
+  dragOverTodoId = null;
+  dragInsertAfter = false;
+
+  if (shouldRender) {
+    renderTodos();
+  }
 }
 
 function updatePinState(isPinned) {
@@ -392,14 +408,6 @@ todoList.addEventListener('click', (event) => {
     }
   }
 
-  if (event.target.closest('.todo-move-up')) {
-    moveTodo(item.dataset.id, -1);
-  }
-
-  if (event.target.closest('.todo-move-down')) {
-    moveTodo(item.dataset.id, 1);
-  }
-
   if (event.target.closest('.todo-remove')) {
     removeTodo(item.dataset.id);
   }
@@ -443,6 +451,59 @@ todoList.addEventListener('focusout', (event) => {
   if (item && !nextFocusInSameItem) {
     saveTodoEdit(item.dataset.id, event.target.value);
   }
+});
+
+todoList.addEventListener('dragstart', (event) => {
+  const item = event.target.closest('.todo-item');
+  if (!item || !event.target.closest('.todo-drag') || editingId) {
+    event.preventDefault();
+    return;
+  }
+
+  draggedTodoId = item.dataset.id;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', draggedTodoId);
+  setTimeout(renderTodos, 0);
+});
+
+todoList.addEventListener('dragover', (event) => {
+  const item = event.target.closest('.todo-item');
+  if (!item || !draggedTodoId || item.dataset.id === draggedTodoId) {
+    return;
+  }
+
+  event.preventDefault();
+  const rect = item.getBoundingClientRect();
+  const insertAfter = event.clientY > rect.top + rect.height / 2;
+
+  if (dragOverTodoId !== item.dataset.id || dragInsertAfter !== insertAfter) {
+    dragOverTodoId = item.dataset.id;
+    dragInsertAfter = insertAfter;
+    renderTodos();
+  }
+});
+
+todoList.addEventListener('drop', (event) => {
+  const item = event.target.closest('.todo-item');
+  if (!item || !draggedTodoId) {
+    resetDragState();
+    return;
+  }
+
+  event.preventDefault();
+  moveTodoTo(draggedTodoId, item.dataset.id, dragInsertAfter);
+});
+
+todoList.addEventListener('dragleave', (event) => {
+  if (!todoList.contains(event.relatedTarget)) {
+    dragOverTodoId = null;
+    dragInsertAfter = false;
+    renderTodos();
+  }
+});
+
+todoList.addEventListener('dragend', () => {
+  resetDragState();
 });
 
 todoInput.addEventListener('keydown', (event) => {
