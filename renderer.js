@@ -107,10 +107,27 @@ function parseSavedContent(savedContent) {
 
 function sortTodos() {
   todos.sort((a, b) => {
+    if (a.done !== b.done) {
+      return Number(a.done) - Number(b.done);
+    }
+
     const aOrder = Number.isFinite(a.order) ? a.order : a.createdAt;
     const bOrder = Number.isFinite(b.order) ? b.order : b.createdAt;
     return aOrder - bOrder;
   });
+}
+
+function getBoundaryOrder(done, edge) {
+  const matchingOrders = todos
+    .filter((todo) => todo.done === done)
+    .map((todo) => todo.order)
+    .filter(Number.isFinite);
+
+  if (matchingOrders.length === 0) {
+    return 0;
+  }
+
+  return edge === 'first' ? Math.min(...matchingOrders) - 1 : Math.max(...matchingOrders) + 1;
 }
 
 function refreshTodoOrder() {
@@ -237,7 +254,7 @@ function addTodo(text) {
     done: false,
     createdAt: Date.now(),
     completedAt: null,
-    order: todos.length,
+    order: getBoundaryOrder(false, 'first'),
   });
   todoInput.value = '';
   renderTodos();
@@ -255,6 +272,7 @@ function toggleTodo(id) {
       ...todo,
       done,
       completedAt: done ? Date.now() : null,
+      order: getBoundaryOrder(done, done ? 'last' : 'first'),
     };
   });
   renderTodos();
@@ -304,7 +322,13 @@ function moveTodoTo(id, targetId, insertAfter) {
   const currentIndex = todos.findIndex((todo) => todo.id === id);
   const targetIndex = todos.findIndex((todo) => todo.id === targetId);
 
-  if (currentIndex < 0 || targetIndex < 0 || id === targetId) {
+  if (
+    currentIndex < 0
+    || targetIndex < 0
+    || id === targetId
+    || todos[currentIndex].done !== todos[targetIndex].done
+  ) {
+    resetDragState();
     return;
   }
 
@@ -469,6 +493,12 @@ todoList.addEventListener('dragstart', (event) => {
 todoList.addEventListener('dragover', (event) => {
   const item = event.target.closest('.todo-item');
   if (!item || !draggedTodoId || item.dataset.id === draggedTodoId) {
+    return;
+  }
+
+  const draggedTodo = todos.find((todo) => todo.id === draggedTodoId);
+  const targetTodo = todos.find((todo) => todo.id === item.dataset.id);
+  if (!draggedTodo || !targetTodo || draggedTodo.done !== targetTodo.done) {
     return;
   }
 
